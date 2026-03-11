@@ -473,6 +473,7 @@
 
         // Start Game
         function startGame() {
+            if (isPlaying) return; // Prevent restarting if already playing
             isPlaying = true;
             score = 0;
             survivalTime = 0;
@@ -616,12 +617,19 @@
         // --- Event Listeners ---
 
         // UI Buttons
-        document.getElementById("start-btn").addEventListener("click", startGame);
-        document.getElementById("restart-btn").addEventListener("click", startGame);
+        document.getElementById("start-btn").addEventListener("click", function (e) {
+            this.blur(); // Remove focus from button
+            startGame();
+        });
+        document.getElementById("restart-btn").addEventListener("click", function (e) {
+            this.blur(); // Remove focus from button
+            startGame();
+        });
 
         // Jump Triggers (Spacebar, Mouse Click, Touch)
         document.addEventListener("keydown", (e) => {
             if (e.code === "Space") {
+                e.preventDefault(); // Prevent default spacebar behavior (like clicking focused buttons)
                 jump();
             }
         });
