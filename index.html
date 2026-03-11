@@ -28,6 +28,16 @@
             align-items: center;
         }
 
+        #game-viewport {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: none;
+        }
+
         #game-area {
             position: relative;
             width: 800px;
@@ -36,13 +46,8 @@
             border-bottom: 5px solid var(--primary-color);
             overflow: hidden;
             box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
-        }
-
-        @media (max-width: 800px) {
-            #game-area {
-                width: 100vw;
-                height: 50vh;
-            }
+            flex-shrink: 0;
+            transform-origin: center center;
         }
 
         /* Stickman Player */
@@ -351,14 +356,22 @@
         }
 
         /* UI Overlays */
-        #score-board {
+        #score-board, #level-board {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 24px;
+            top: 15px;
+            font-size: 20px;
             font-weight: bold;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(255, 255, 255, 0.8);
             z-index: 10;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        #level-board {
+            left: 20px;
+        }
+
+        #score-board {
+            right: 20px;
         }
 
         .screen {
@@ -420,7 +433,8 @@
 
 <body>
 
-    <div id="game-area">
+    <div id="game-viewport">
+        <div id="game-area">
         <div id="level-board">Level: <span id="level">1</span></div>
         <div id="score-board">Score: <span id="score">0</span></div>
 
@@ -450,6 +464,7 @@
             <button id="restart-btn">TRY AGAIN</button>
         </div>
     </div>
+</div>
 
     <script>
         const player = document.getElementById("player");
@@ -641,7 +656,27 @@
             jump();
         });
 
+        // --- Responsive Scaling ---
+        function scaleGame() {
+            const area = document.getElementById("game-area");
+            const vw = window.innerWidth * 0.98; // 2% buffer
+            const vh = window.innerHeight * 0.98;
+
+            const scaleX = vw / 800;
+            const scaleY = vh / 400;
+            const scale = Math.min(scaleX, scaleY);
+            
+            // On very large screens, don't scale up too much if it looks blurry
+            // but for this pixel-art style, scaling up is usually fine.
+            // We cap it at 1.5x for desktop or just let it fill.
+            area.style.transform = `scale(${scale})`;
+        }
+
+        window.addEventListener("resize", scaleGame);
+        window.addEventListener("load", scaleGame);
+        scaleGame();
+
     </script>
 </body>
 
-</HTML>
+</html>
