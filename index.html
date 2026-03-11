@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jump Runner</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --primary-color: #00ffcc;
+            --secondary-color: #ff0055;
+            --text-color: #ffffff;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-area {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            background-color: #161b22;
+            border-bottom: 5px solid var(--primary-color);
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
+        }
+
+        @media (max-width: 800px) {
+            #game-area {
+                width: 100vw;
+                height: 50vh;
+            }
+        }
+
+        /* Stickman Player */
+        #player {
+            position: absolute;
+            width: 40px;
+            height: 60px;
+            bottom: 0px;
+            left: 50px;
+            z-index: 2;
+        }
+
+        /* Stickman parts */
+        .head {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            top: 0;
+            left: 11px;
+        }
+
+        .body-torso {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background-color: var(--primary-color);
+            top: 16px;
+            left: 19px;
+        }
+
+        .arm,
+        .leg {
+            position: absolute;
+            width: 2px;
+            height: 16px;
+            background-color: var(--primary-color);
+            transform-origin: top center;
+        }
+
+        /* Arms */
+        .arm.left {
+            top: 20px;
+            left: 19px;
+        }
+
+        .arm.right {
+            top: 20px;
+            left: 19px;
+        }
+
+        /* Legs */
+        .leg.left {
+            top: 36px;
+            left: 19px;
+        }
+
+        .leg.right {
+            top: 36px;
+            left: 19px;
+        }
+
+        /* Running Animation */
+        @keyframes swingArmLeft {
+            0% {
+                transform: rotate(30deg);
+            }
+
+            50% {
+                transform: rotate(-30deg);
+            }
+
+            100% {
+                transform: rotate(30deg);
+            }
+        }
+
+        @keyframes swingArmRight {
+            0% {
+                transform: rotate(-30deg);
+            }
+
+            50% {
+                transform: rotate(30deg);
+            }
+
+            100% {
+                transform: rotate(-30deg);
+            }
+        }
+
+        @keyframes swingLegLeft {
+            0% {
+                transform: rotate(-40deg);
+            }
+
+            50% {
+                transform: rotate(20deg);
+            }
+
+            100% {
+                transform: rotate(-40deg);
+            }
+        }
+
+        @keyframes swingLegRight {
+            0% {
+                transform: rotate(20deg);
+            }
+
+            50% {
+                transform: rotate(-40deg);
+            }
+
+            100% {
+                transform: rotate(20deg);
+            }
+        }
+
+        .run-anim .arm.left {
+            animation: swingArmLeft 0.5s infinite ease-in-out;
+        }
+
+        .run-anim .arm.right {
+            animation: swingArmRight 0.5s infinite ease-in-out;
+        }
+
+        .run-anim .leg.left {
+            animation: swingLegLeft 0.5s infinite ease-in-out;
+        }
+
+        .run-anim .leg.right {
+            animation: swingLegRight 0.5s infinite ease-in-out;
+        }
+
+        /* Jump Pose overrides run animation */
+        #player.player-jump .arm.left {
+            animation: none;
+            transform: rotate(-120deg);
+        }
+
+        #player.player-jump .arm.right {
+            animation: none;
+            transform: rotate(120deg);
+        }
+
+        #player.player-jump .leg.left {
+            animation: none;
+            transform: rotate(-20deg);
+        }
+
+        #player.player-jump .leg.right {
+            animation: none;
+            transform: rotate(20deg);
+        }
+
+        /* Base Monster Style */
+        .obstacle-base {
+            position: absolute;
+            background-color: var(--secondary-color);
+            width: 35px;
+            height: 35px;
+            bottom: 0px;
+            right: -50px;
+            box-shadow: 0 0 15px var(--secondary-color);
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Generic Monster Eyes */
+        .obstacle-base::before,
+        .obstacle-base::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background-color: white;
+            border-radius: 50%;
+            display: block;
+            box-shadow: 0 0 5px white;
+        }
+
+        /* Animations */
+        @keyframes obstacleMoveLeft {
+            0% {
+                right: -50px;
+            }
+
+            100% {
+                right: 900px;
+            }
+        }
+
+        @keyframes obstacleMoveVertical {
+            0% {
+                right: -50px;
+                bottom: 0px;
+            }
+
+            50% {
+                right: 425px;
+                bottom: 120px;
+            }
+
+            100% {
+                right: 900px;
+                bottom: 0px;
+            }
+        }
+
+        @keyframes obstacleMoveHorizontalPingPong {
+            0% {
+                right: -50px;
+            }
+
+            30% {
+                right: 300px;
+            }
+
+            50% {
+                right: 200px;
+            }
+
+            /* moves back */
+            100% {
+                right: 900px;
+            }
+        }
+
+        .anim-normal {
+            animation-name: obstacleMoveLeft;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+            /* Pink Slime */
+            border-radius: 20px 20px 5px 5px;
+        }
+
+        .anim-vertical {
+            animation-name: obstacleMoveVertical;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+            background-color: #ffaa00;
+            /* Orange Flyer */
+            box-shadow: 0 0 15px #ffaa00;
+            border-radius: 50%;
+            /* Round body */
+            height: 30px;
+            width: 40px;
+        }
+
+        /* Flyer Angry Eyes */
+        .anim-vertical::before,
+        .anim-vertical::after {
+            border-radius: 2px;
+            height: 4px;
+            width: 8px;
+        }
+
+        .anim-vertical::before {
+            transform: rotate(15deg);
+        }
+
+        .anim-vertical::after {
+            transform: rotate(-15deg);
+        }
+
+        .anim-horizontal {
+            animation-name: obstacleMoveHorizontalPingPong;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+            background-color: #bb00ff;
+            /* Purple Dasher */
+            box-shadow: 0 0 15px #bb00ff;
+            border-radius: 8px;
+            height: 45px;
+            width: 30px;
+        }
+
+        /* Dasher Narrow Eyes */
+        .anim-horizontal::before,
+        .anim-horizontal::after {
+            width: 4px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .player-jump {
+            animation: jumpAnim 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes jumpAnim {
+            0% {
+                bottom: 0px;
+            }
+
+            50% {
+                bottom: 150px;
+            }
+
+            100% {
+                bottom: 0px;
+            }
+        }
+
+        /* UI Overlays */
+        #score-board {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 10;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            transition: opacity 0.3s;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--primary-color);
+            text-shadow: 0 0 20px var(--primary-color);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #111;
+            background-color: var(--primary-color);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .hint {
+            margin-top: 20px;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-area">
+        <div id="level-board">Level: <span id="level">1</span></div>
+        <div id="score-board">Score: <span id="score">0</span></div>
+
+        <div id="player" class="run-anim">
+            <div class="head"></div>
+            <div class="body-torso"></div>
+            <div class="arm left"></div>
+            <div class="arm right"></div>
+            <div class="leg left"></div>
+            <div class="leg right"></div>
+        </div>
+
+        <!-- Obstacles will be inserted here dynamically -->
+        <div id="obstacles-container"></div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
+            <h1>JUMP RUNNER</h1>
+            <button id="start-btn">START GAME</button>
+            <div class="hint">Tap anywhere or press Space to jump</div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="screen hidden">
+            <h1 style="color: var(--secondary-color); text-shadow: 0 0 20px var(--secondary-color);">GAME OVER</h1>
+            <h2>Final Score: <span id="final-score">0</span></h2>
+            <button id="restart-btn">TRY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        const player = document.getElementById("player");
+        const obstaclesContainer = document.getElementById("obstacles-container");
+        const startScreen = document.getElementById("start-screen");
+        const endScreen = document.getElementById("end-screen");
+        const scoreSpan = document.getElementById("score");
+        const levelSpan = document.getElementById("level");
+        const finalScoreSpan = document.getElementById("final-score");
+        const gameArea = document.getElementById("game-area");
+
+        let isPlaying = false;
+        let score = 0;
+        let level = 1;
+        let survivalTime = 0;
+        let currentAnimationDuration = 1.6; // Base duration
+
+        let scoreTimer;
+        let spawnTimer;
+        let activeObstacles = [];
+
+        // Start Game
+        function startGame() {
+            isPlaying = true;
+            score = 0;
+            survivalTime = 0;
+            level = 1;
+            currentAnimationDuration = 1.5; // Reset speed
+            scoreSpan.innerText = score;
+            levelSpan.innerText = level;
+            startScreen.classList.add("hidden");
+            endScreen.classList.add("hidden");
+
+            player.classList.add("run-anim");
+
+            // Clear previous obstacles
+            obstaclesContainer.innerHTML = '';
+            activeObstacles = [];
+
+            // Start spawning
+            scheduleNextSpawn();
+
+            // Start Score and Level Progression
+            scoreTimer = setInterval(() => {
+                if (!isPlaying) return;
+                score++;
+                survivalTime++;
+                scoreSpan.innerText = score;
+
+                // Difficulty System: Every 10 seconds = +1 level
+                if (survivalTime % 10 === 0) {
+                    level++;
+                    levelSpan.innerText = level;
+                    increaseDifficulty();
+                }
+            }, 1000);
+
+            function increaseDifficulty() {
+                currentAnimationDuration = currentAnimationDuration * 0.9;
+                if (currentAnimationDuration < 0.8) currentAnimationDuration = 0.8;
+            }
+
+            function scheduleNextSpawn() {
+                if (!isPlaying) return;
+                // Spawn interval relates to current speed
+                let nextSpawnDelay = (currentAnimationDuration * 1000) * (Math.random() * 0.5 + 0.6);
+                spawnTimer = setTimeout(() => {
+                    spawnObstacle();
+                    scheduleNextSpawn();
+                }, nextSpawnDelay);
+            }
+
+            function spawnObstacle() {
+                if (!isPlaying) return;
+
+                let obsType = 'anim-normal';
+                // Roll probability based on level
+                let roll = Math.random();
+                if (level >= 3 && roll < 0.15) {
+                    obsType = 'anim-horizontal';
+                } else if (level >= 2 && roll < 0.40) { // cumulative ~25% vertical
+                    obsType = 'anim-vertical';
+                }
+
+                const el = document.createElement('div');
+                el.className = `obstacle-base ${obsType}`;
+                el.style.animationDuration = currentAnimationDuration + "s";
+
+                obstaclesContainer.appendChild(el);
+                activeObstacles.push(el);
+
+                // Housekeeping: remove out of bounds elements 
+                // We use animation duration + small buffer to cleanup
+                setTimeout(() => {
+                    if (el && el.parentNode) {
+                        el.parentNode.removeChild(el);
+                        // Remove from array tracking
+                        activeObstacles = activeObstacles.filter(o => o !== el);
+                    }
+                }, (currentAnimationDuration * 1000) + 100);
+            }
+
+            // Start Collision Detection
+            function gameLoop() {
+                if (!isPlaying) return;
+                checkCollision();
+                requestAnimationFrame(gameLoop);
+            }
+            requestAnimationFrame(gameLoop);
+        } // <-- Fixed: Closes startGame()
+
+        // Jump Logic
+        function jump() {
+            if (!isPlaying) return;
+            if (player.classList.contains("player-jump")) return; // Prevent double jump
+
+            player.classList.add("player-jump");
+
+            // Remove class after animation completes (0.6s)
+            setTimeout(() => {
+                player.classList.remove("player-jump");
+            }, 600);
+        }
+
+        // Collision Detection
+        function checkCollision() {
+            let playerRect = player.getBoundingClientRect();
+            const pxMargin = 10;
+            const pyMargin = 5;
+
+            for (let obs of activeObstacles) {
+                let obstacleRect = obs.getBoundingClientRect();
+
+                if (
+                    playerRect.right - pxMargin > obstacleRect.left &&
+                    playerRect.left + pxMargin < obstacleRect.right &&
+                    playerRect.bottom - pyMargin > obstacleRect.top &&
+                    playerRect.top + pyMargin < obstacleRect.bottom
+                ) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        function gameOver() {
+            isPlaying = false;
+
+            // Stop animations and timers
+            player.classList.remove("run-anim");
+            clearInterval(scoreTimer);
+            clearTimeout(spawnTimer);
+
+            // Freeze all active obstacles in place
+            activeObstacles.forEach(obs => {
+                obs.style.animationPlayState = 'paused';
+            });
+
+            // Show End Screen
+            finalScoreSpan.innerText = score;
+            endScreen.classList.remove("hidden");
+        }
+
+        // --- Event Listeners ---
+
+        // UI Buttons
+        document.getElementById("start-btn").addEventListener("click", startGame);
+        document.getElementById("restart-btn").addEventListener("click", startGame);
+
+        // Jump Triggers (Spacebar, Mouse Click, Touch)
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") {
+                jump();
+            }
+        });
+
+        // Add touch/click listener to the game area itself instead of whole window
+        // to prevent UI button clicks from accidentally triggering jumps
+        gameArea.addEventListener("mousedown", jump);
+        gameArea.addEventListener("touchstart", (e) => {
+            jump();
+        });
+
+    </script>
+</body>
+
+</html>
